@@ -1,123 +1,161 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { supabase } from '../../../../lib/supabase'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { Trash2, Edit3, Plus, Package } from 'lucide-react'
+import { useRouter, useParams } from 'next/navigation'
+import { Upload, X, Loader2, Plus } from 'lucide-react'
 
-export default function AdminDashboard() {
-  const [products, setProducts] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+export default function EditProductPage() {
+  const { id } = useParams()
   const router = useRouter()
+  
+  const [name, setName] = useState('')
+  const [price, setPrice] = useState('')
+  const [size, setSize] = useState('')
+  const [description, setDescription] = useState('')
+  const [imageUrls, setImageUrls] = useState<string[]>([]) // เปลี่ยนเป็น Array
+  const [loading, setLoading] = useState(true)
+  const [updating, setUpdating] = useState(false)
 
   useEffect(() => {
-    const checkAdminAndFetch = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      // ถ้าไม่ใช่ admin ให้เด้งออกไปหน้าแรก
-      if (user?.user_metadata?.role !== 'admin') {
-        router.push('/')
-        return
+    const fetchProduct = async () => {
+      const { data } = await supabase.from('products').select('*').eq('id', id).single()
+      if (data) {
+        setName(data.name)
+        setPrice(data.price.toString())
+        setSize(data.size || '')
+        setDescription(data.description || '')
+        // ตรวจสอบว่าเป็น Array หรือไม่ ถ้าไม่ใช่ให้แปลงเป็น Array
+        const imgs = Array.isArray(data.image_url) ? data.image_url : [data.image_url].filter(Boolean)
+        setImageUrls(imgs)
       }
-      
-      // ดึงข้อมูลสินค้า
-      const { data } = await supabase
-        .from('products')
-        .select('*')
-        .order('id', { ascending: false })
-      
-      if (data) setProducts(data)
       setLoading(false)
     }
+    fetchProduct()
+  }, [id])
 
-    checkAdminAndFetch()
-  }, [router])
+  // ฟังก์ชันอัปโหลดรูป (รองรับการเพิ่มเข้าไปใน Array)
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
 
-  const handleDelete = async (id: string) => {
-    if (confirm('ยืนยันที่จะลบสินค้านี้ใช่ไหม?')) {
-      const { error } = await supabase.from('products').delete().eq('id', id)
-      if (!error) {
-        setProducts(products.filter(p => p.id !== id))
-        alert('ลบสำเร็จ')
+    setUpdating(true)
+    const newUrls = [...imageUrls]
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${Math.random()}.${fileExt}`
+      const filePath = `products/${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file)
+
+      if (!uploadError) {
+        const { data } = supabase.storage.from('product-images').getPublicUrl(filePath)
+        newUrls.push(data.publicUrl)
       }
     }
+
+    setImageUrls(newUrls)
+    setUpdating(false)
   }
 
-  if (loading) return <div className="p-20 text-center font-black animate-pulse">LOADING DASHBOARD...</div>
+  // ฟังก์ชันลบรูปเฉพาะใบที่เลือก
+  const removeImage = (indexToRemove: number) => {
+    setImageUrls(imageUrls.filter((_, index) => index !== indexToRemove))
+  }
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setUpdating(true)
+    
+    const { error } = await supabase.from('products')
+      .update({ 
+        name, 
+        price: Number(price), 
+        size,
+        description,
+        image_url: imageUrls // ส่ง Array ของรูปทั้งหมดกลับไป
+      })
+      .eq('id', id)
+    
+    if (!error) {
+      alert('อัปเดตข้อมูลสินค้าเรียบร้อย!')
+      router.push('/admin/add/dashboard')
+    }
+    setUpdating(false)
+  }
+
+  if (loading) return <div className="p-20 text-center font-black animate-pulse">LOADING...</div>
 
   return (
-    <div className="max-w-6xl mx-auto p-8 font-sans">
-      <div className="flex justify-between items-end mb-10">
-        <div>
-          <h1 className="text-4xl font-black italic uppercase leading-none">Management</h1>
-          <p className="text-gray-400 font-bold text-[10px] tracking-[0.3em] mt-2">STOCK CONTROL SYSTEM</p>
-        </div>
-        <Link 
-          href="/admin/add" 
-          className="bg-black text-white px-6 py-3 rounded-2xl font-black text-xs flex items-center gap-2 hover:bg-gray-800 transition shadow-lg active:scale-95"
-        >
-          <Plus size={16} /> ADD PRODUCT
-        </Link>
-      </div>
-
-      <div className="bg-white border border-gray-100 rounded-[32px] overflow-hidden shadow-sm">
-        <table className="w-full text-left border-collapse">
-          <thead className="bg-gray-50/50 text-[10px] font-black tracking-widest uppercase text-gray-400 border-b border-gray-50">
-            <tr>
-              <th className="px-8 py-5">Product Details</th>
-              <th className="px-8 py-5">Price</th>
-              <th className="px-8 py-5 text-right">Settings</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            {products.map((product) => (
-              <tr key={product.id} className="hover:bg-gray-50/30 transition-colors group">
-                <td className="px-8 py-5">
-                  <div className="flex items-center gap-5">
-                    <div className="w-16 h-16 rounded-2xl bg-gray-100 overflow-hidden border border-gray-50">
-                      <img 
-                        src={Array.isArray(product.image_url) ? product.image_url[0] : product.image_url} 
-                        className="w-full h-full object-cover group-hover:scale-110 transition duration-500"
-                        alt=""
-                      />
-                    </div>
-                    <div>
-                      <p className="font-black text-sm uppercase leading-tight">{product.name}</p>
-                      <p className="text-[10px] font-bold text-gray-400 mt-1">SIZE: {product.size}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-8 py-5">
-                  <span className="font-black text-sm italic">฿{product.price?.toLocaleString()}</span>
-                </td>
-                <td className="px-8 py-5 text-right">
-                  <div className="flex justify-end gap-2">
-                    <button 
-                      onClick={() => router.push(`/admin/edit/${product.id}`)}
-                      className="p-3 text-gray-300 hover:text-black hover:bg-white rounded-xl transition shadow-sm border border-transparent hover:border-gray-100"
-                    >
-                      <Edit3 size={18} />
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(product.id)}
-                      className="p-3 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition border border-transparent hover:border-red-100"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
+    <div className="max-w-3xl mx-auto mt-10 mb-20 p-10 bg-white border border-gray-100 rounded-[40px] shadow-2xl">
+      <h1 className="text-3xl font-black italic uppercase mb-8">Edit Product Gallery</h1>
+      
+      <form onSubmit={handleUpdate} className="space-y-8">
+        
+        {/* ส่วนจัดการหลายรูปภาพ */}
+        <div className="space-y-4">
+          <label className="text-[10px] font-black ml-4 text-gray-400 uppercase tracking-widest">Product Gallery ({imageUrls.length})</label>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 border-2 border-dashed border-gray-100 rounded-[32px]">
+            
+            {imageUrls.map((url, index) => (
+              <div key={index} className="relative aspect-square group">
+                <img src={url} className="w-full h-full object-cover rounded-2xl border border-gray-100 shadow-sm" alt="Preview" />
+                <button 
+                  type="button"
+                  onClick={() => removeImage(index)} 
+                  className="absolute -top-2 -right-2 bg-red-500 text-white p-1.5 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X size={14}/>
+                </button>
+                {index === 0 && <span className="absolute bottom-2 left-2 bg-black text-[8px] text-white px-2 py-1 rounded-md font-black">THUMBNAIL</span>}
+              </div>
             ))}
-          </tbody>
-        </table>
 
-        {products.length === 0 && (
-          <div className="p-20 text-center">
-            <Package className="mx-auto text-gray-200 mb-4" size={48} />
-            <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">No products found in database</p>
+            <label className="flex flex-col items-center justify-center aspect-square cursor-pointer bg-gray-50 hover:bg-gray-100 rounded-2xl border-2 border-dashed border-gray-200 transition-all group">
+              <Plus className="text-gray-300 group-hover:text-black transition-colors" size={30} />
+              <span className="text-[8px] font-black text-gray-400 mt-2">ADD IMAGE</span>
+              <input type="file" className="hidden" onChange={handleImageUpload} accept="image/*" multiple />
+            </label>
           </div>
-        )}
-      </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="md:col-span-2">
+            <label className="text-[10px] font-black ml-4 mb-2 block text-gray-400 uppercase">Product Name</label>
+            <input className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-bold focus:ring-2 focus:ring-black" value={name} onChange={(e) => setName(e.target.value)} required />
+          </div>
+          
+          <div>
+            <label className="text-[10px] font-black ml-4 mb-2 block text-gray-400 uppercase">Price (฿)</label>
+            <input className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-bold" type="number" value={price} onChange={(e) => setPrice(e.target.value)} required />
+          </div>
+
+          <div>
+            <label className="text-[10px] font-black ml-4 mb-2 block text-gray-400 uppercase">Size</label>
+            <input className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-bold" value={size} onChange={(e) => setSize(e.target.value)} />
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="text-[10px] font-black ml-4 mb-2 block text-gray-400 uppercase">Full Description</label>
+            <textarea 
+              className="w-full p-5 bg-gray-50 rounded-[24px] outline-none font-bold min-h-[150px] leading-relaxed" 
+              value={description} 
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Tell more about this product..."
+            />
+          </div>
+        </div>
+
+        <button 
+          disabled={updating}
+          className="w-full bg-black text-white py-5 rounded-[24px] font-black shadow-xl hover:bg-gray-800 transition active:scale-95 disabled:opacity-50 flex justify-center items-center gap-2 text-sm tracking-widest"
+        >
+          {updating ? <Loader2 className="animate-spin" size={20} /> : 'SAVE ALL CHANGES'}
+        </button>
+      </form>
     </div>
   )
 }
