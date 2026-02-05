@@ -3,10 +3,11 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Trash2, Edit3, Plus, Package, ExternalLink } from 'lucide-react'
+import { Trash2, Edit3, Plus, Package, ShoppingBag, ArrowRight } from 'lucide-react'
 
 export default function AdminDashboard() {
   const [products, setProducts] = useState<any[]>([])
+  const [orderCount, setOrderCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
@@ -17,107 +18,137 @@ export default function AdminDashboard() {
         router.push('/')
         return
       }
-      const { data } = await supabase
+
+      const { data: productsData } = await supabase
         .from('products')
         .select('*')
         .order('id', { ascending: false })
-      if (data) setProducts(data)
+      
+      const { count } = await supabase
+        .from('orders')
+        .select('*', { count: 'exact', head: true })
+
+      if (productsData) setProducts(productsData)
+      if (count !== null) setOrderCount(count)
       setLoading(false)
     }
     checkAdminAndFetch()
   }, [router])
 
   const handleDelete = async (id: string) => {
-    if (confirm('ยืนยันที่จะลบสินค้านี้ใช่ไหม?')) {
+    if (confirm('Confirm deletion?')) {
       const { error } = await supabase.from('products').delete().eq('id', id)
       if (!error) {
         setProducts(products.filter(p => p.id !== id))
-        alert('ลบสำเร็จ')
       }
     }
   }
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-center font-black animate-pulse tracking-[0.5em] text-gray-400">LOADING...</div>
+    <div className="min-h-screen flex items-center justify-center bg-[#F9F9F9]">
+      <div className="text-center font-black animate-pulse tracking-[0.4em] text-zinc-300 text-[10px]">ACCESSING VAULT...</div>
     </div>
   )
 
   return (
-    <div className="max-w-6xl mx-auto p-6 md:p-12 font-sans bg-white">
+    <div className="max-w-6xl mx-auto p-6 md:p-12 font-sans bg-[#F9F9F9] min-h-screen text-zinc-900">
+      
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6">
         <div>
-          <h1 className="text-5xl font-black italic uppercase leading-none tracking-tighter">Inventory</h1>
+          <h1 className="text-5xl font-black italic uppercase leading-none tracking-tighter text-zinc-900">Inventory</h1>
+          <p className="text-[10px] font-bold text-zinc-400 mt-2 uppercase tracking-[0.2em]">Management Terminal</p>
         </div>
-        <Link 
-          href="/admin/add" 
-          className="bg-black text-white px-8 py-4 rounded-[22px] font-black text-xs flex items-center gap-3 hover:bg-zinc-800 transition-all shadow-[0_10px_30px_rgba(0,0,0,0.15)] active:scale-95 group"
-        >
-          <Plus size={18} className="group-hover:rotate-90 transition-transform duration-300" /> 
-          ADD NEW PRODUCT
-        </Link>
+        <div className="flex gap-3">
+           <Link 
+            href="/admin/add/orders" 
+            className="bg-zinc-900 text-white px-6 py-3 rounded-[20px] font-black text-[10px] tracking-widest flex items-center gap-2 hover:bg-black transition-all shadow-lg shadow-zinc-200 active:scale-95 group"
+          >
+            <ShoppingBag size={14} />
+            ORDERS
+          </Link>
+
+          <Link 
+            href="/admin/add" 
+            className="bg-zinc-900 text-white px-6 py-3 rounded-[20px] font-black text-[10px] tracking-widest flex items-center gap-2 hover:bg-black transition-all shadow-lg shadow-zinc-200 active:scale-95 group"
+          >
+            <Plus size={14} /> 
+            ADD PRODUCT
+          </Link>
+        </div>
       </div>
 
-      {/* Stats Summary (Optional/New UI) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10 text-center">
-        <div className="p-6 bg-gray-50 rounded-[30px] border border-gray-100">
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Stock</p>
-          <p className="text-2xl font-black mt-1">{products.length} Items</p>
+      {/* Stats Cards (ตรงตาม image_10e45a.png) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+        {/* Card: Stock */}
+        <div className="p-10 bg-white rounded-[40px] border border-zinc-50 flex justify-between items-center shadow-[0_10px_40px_-15px_rgba(0,0,0,0.05)]">
+          <div>
+            <p className="text-[10px] font-black text-zinc-300 uppercase tracking-[0.2em] mb-3">Items in Vault</p>
+            <p className="text-6xl font-black italic tracking-tighter text-zinc-900">{products.length}</p>
+          </div>
+          <div className="w-16 h-16 bg-[#F9F9F9] rounded-2xl flex items-center justify-center border border-zinc-50">
+            <Package size={24} className="text-zinc-900" />
+          </div>
         </div>
-        {/* คุณสามารถเพิ่มช่องอื่นๆ เช่น ยอดรวมราคาได้ที่นี่ */}
+
+        {/* Card: Orders */}
+          <div className="p-10 bg-white rounded-[40px] border border-zinc-50 flex justify-between items-center shadow-[0_10px_40px_-15px_rgba(0,0,0,0.05)] group-hover:border-zinc-200 transition-all">
+            <div>
+              <p className="text-[10px] font-black text-zinc-300 uppercase tracking-[0.2em] mb-3">Total Orders</p>
+              <p className="text-6xl font-black italic tracking-tighter text-zinc-900">{orderCount}</p>
+            </div>
+          </div>
+        
       </div>
 
       {/* Table Container */}
-      <div className="bg-white border border-gray-100 rounded-[42px] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.03)]">
+      <div className="bg-white rounded-[48px] overflow-hidden shadow-[0_20px_60px_-20px_rgba(0,0,0,0.05)] border border-zinc-50">
         <table className="w-full text-left border-collapse">
-          <thead className="bg-gray-50/80 text-[10px] font-black tracking-widest uppercase text-gray-500 border-b border-gray-50">
+          <thead className="bg-[#FDFFFD] text-[9px] font-black tracking-[0.25em] uppercase text-zinc-300 border-b border-zinc-50">
             <tr>
-              <th className="px-10 py-6">Product Details</th>
-              <th className="px-10 py-6">Pricing</th>
-              <th className="px-10 py-6 text-right">Actions</th>
+              <th className="px-10 py-8">Product Details</th>
+              <th className="px-10 py-8">Pricing</th>
+              <th className="px-10 py-8 text-right">Edit</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-50">
+          <tbody className="divide-y divide-zinc-50">
             {products.map((product) => (
-              <tr key={product.id} className="hover:bg-gray-50/40 transition-all group">
-                <td className="px-10 py-7">
-                  <div className="flex items-center gap-6">
-                    <div className="w-20 h-20 rounded-[28px] bg-gray-100 overflow-hidden border border-gray-100 shadow-sm relative">
+              <tr key={product.id} className="group hover:bg-zinc-50/30 transition-colors">
+                <td className="px-10 py-8">
+                  <div className="flex items-center gap-8">
+                    <div className="w-24 h-24 rounded-[30px] bg-[#F9F9F9] overflow-hidden border border-zinc-100 shadow-inner">
                       <img 
                         src={Array.isArray(product.image_url) ? product.image_url[0] : product.image_url} 
-                        className="w-full h-full object-cover group-hover:scale-110 transition duration-700"
+                        className="w-full h-full object-cover group-hover:scale-105 transition duration-700"
                         alt=""
                       />
                     </div>
                     <div>
-                      <p className="font-black text-base uppercase leading-tight text-zinc-900">{product.name}</p>
-                      <div className="flex gap-2 mt-2">
-                         <span className="text-[9px] font-black bg-zinc-100 px-2 py-1 rounded-md text-zinc-500 uppercase tracking-tighter">SIZE: {product.size}</span>
-                         {product.category && <span className="text-[9px] font-black bg-zinc-100 px-2 py-1 rounded-md text-zinc-500 uppercase tracking-tighter">{product.category}</span>}
+                      <p className="font-black text-lg uppercase tracking-tight text-zinc-900 leading-tight">{product.name}</p>
+                      <div className="flex gap-2 mt-3">
+                         <span className="text-[8px] font-black bg-white border border-zinc-100 px-3 py-1 rounded-full text-zinc-400 uppercase tracking-widest">{product.size}</span>
+                         {product.category && <span className="text-[8px] font-white bg-zinc-900 px-3 py-1 rounded-full text-white uppercase tracking-widest">{product.category}</span>}
                       </div>
                     </div>
                   </div>
                 </td>
-                <td className="px-10 py-7">
+                <td className="px-10 py-8">
                   <div className="flex flex-col">
-                    <span className="font-black text-lg italic text-zinc-900 leading-none">฿{product.price?.toLocaleString()}</span>
-                    <span className="text-[9px] font-bold text-gray-300 uppercase mt-1">Net Price</span>
+                    <span className="font-black text-2xl italic tracking-tighter text-zinc-900">฿{product.price?.toLocaleString()}</span>
+                    <span className="text-[8px] font-black text-zinc-200 uppercase tracking-widest mt-1 text-zinc-300">Retail Value</span>
                   </div>
                 </td>
-                <td className="px-10 py-7 text-right">
-                  <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <td className="px-10 py-8 text-right">
+                  <div className="flex justify-end gap-2">
                     <button 
                       onClick={() => router.push(`/admin/add/edit/${product.id}`)}
-                      className="p-4 text-zinc-400 hover:text-black bg-white hover:bg-zinc-50 rounded-2xl transition shadow-sm border border-gray-100 active:scale-90"
-                      title="Edit Product"
+                      className="w-12 h-12 flex items-center justify-center text-zinc-300 hover:text-zinc-900 hover:bg-white rounded-2xl transition-all border border-transparent hover:border-zinc-100"
                     >
                       <Edit3 size={18} />
                     </button>
                     <button 
                       onClick={() => handleDelete(product.id)}
-                      className="p-4 text-zinc-400 hover:text-red-500 bg-white hover:bg-red-50 rounded-2xl transition border border-gray-100 active:scale-90"
-                      title="Delete Product"
+                      className="w-12 h-12 flex items-center justify-center text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all"
                     >
                       <Trash2 size={18} />
                     </button>
@@ -130,14 +161,14 @@ export default function AdminDashboard() {
 
         {/* Empty State */}
         {products.length === 0 && (
-          <div className="p-32 text-center bg-gray-50/30">
-            <div className="inline-block p-8 bg-white rounded-[40px] shadow-sm mb-6 border border-gray-50">
-               <Package className="text-zinc-200" size={60} />
+          <div className="py-40 text-center">
+            <div className="inline-block p-10 bg-[#F9F9F9] rounded-[40px] mb-6 border border-zinc-50">
+               <Package className="text-zinc-200" size={48} />
             </div>
-            <p className="text-zinc-400 font-black uppercase tracking-[0.3em] text-[10px]">No products in your vault</p>
+            <p className="text-zinc-300 font-black uppercase tracking-[0.4em] text-[9px]">The Vault is Empty</p>
           </div>
         )}
       </div>
     </div>
   )
-}   
+}

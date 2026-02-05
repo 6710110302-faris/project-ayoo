@@ -18,7 +18,7 @@ export default function CartPage() {
         <h1 className="text-3xl font-black uppercase italic mb-4">ตะกร้าของคุณว่างเปล่า</h1>
         <p className="text-gray-500 mb-8 font-medium">ดูเหมือนว่าคุณยังไม่ได้เลือกสินค้าชิ้นไหนเลย</p>
         <Link 
-          href="/" 
+          href="/checkout" 
           className="bg-black text-white px-10 py-4 rounded-2xl font-black text-sm tracking-widest hover:bg-zinc-800 transition-all active:scale-95"
         >
           BACK TO SHOPPING
