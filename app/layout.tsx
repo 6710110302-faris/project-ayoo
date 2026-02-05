@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Navbar from "./components/Navbar"; // 1. นำ Navbar เข้ามาใช้งาน
+import Navbar from "./components/Navbar"; 
+import { CartProvider } from "./context/CartContext"; // 1. นำ CartProvider เข้ามา
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -9,12 +10,12 @@ const geistSans = Geist({
 });
 
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+  variable: "--font-mono",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "AYYOOYA DIWA | STUSSY SHOP", // เปลี่ยนชื่อเว็บให้ดูโปรขึ้น
+  title: "AYYOOYA DIWA | STUSSY SHOP",
   description: "Vintage Stussy and more",
 };
 
@@ -28,13 +29,17 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white text-black`}
       >
-        {/* 2. ใส่ Navbar ไว้ตรงนี้เพื่อให้โชว์ทุกหน้า */}
-        <Navbar /> 
-        
-        {/* 3. ห่อ children ด้วย container เพื่อให้เนื้อหาไม่ชิดขอบจอเกินไป */}
-        <main className="min-h-screen">
-          {children}
-        </main>
+        {/* 2. หุ้มทุกอย่างด้วย CartProvider */}
+        {/* ต้องครอบทั้ง Navbar และ main เพื่อให้ทุกส่วนเข้าถึงข้อมูลตะกร้าได้ */}
+        <CartProvider>
+          
+          <Navbar /> 
+          
+          <main className="min-h-screen">
+            {children}
+          </main>
+          
+        </CartProvider>
       </body>
     </html>
   );
