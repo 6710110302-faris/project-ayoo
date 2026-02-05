@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Trash2, Edit3, Plus, Package } from 'lucide-react'
+import { Trash2, Edit3, Plus, Package, ExternalLink } from 'lucide-react'
 
 export default function AdminDashboard() {
   const [products, setProducts] = useState<any[]>([])
@@ -13,23 +13,17 @@ export default function AdminDashboard() {
   useEffect(() => {
     const checkAdminAndFetch = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      
-      // ถ้าไม่ใช่ admin ให้เด้งออกไปหน้าแรก
       if (user?.user_metadata?.role !== 'admin') {
         router.push('/')
         return
       }
-      
-      // ดึงข้อมูลสินค้า
       const { data } = await supabase
         .from('products')
         .select('*')
         .order('id', { ascending: false })
-      
       if (data) setProducts(data)
       setLoading(false)
     }
-
     checkAdminAndFetch()
   }, [router])
 
@@ -43,64 +37,87 @@ export default function AdminDashboard() {
     }
   }
 
-  if (loading) return <div className="p-20 text-center font-black animate-pulse">LOADING DASHBOARD...</div>
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center font-black animate-pulse tracking-[0.5em] text-gray-400">LOADING...</div>
+    </div>
+  )
 
   return (
-    <div className="max-w-6xl mx-auto p-8 font-sans">
-      <div className="flex justify-between items-end mb-10">
+    <div className="max-w-6xl mx-auto p-6 md:p-12 font-sans bg-white">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6">
         <div>
-          <h1 className="text-4xl font-black italic uppercase leading-none">Management</h1>
-          <p className="text-gray-400 font-bold text-[10px] tracking-[0.3em] mt-2">STOCK CONTROL SYSTEM</p>
+          <h1 className="text-5xl font-black italic uppercase leading-none tracking-tighter">Inventory</h1>
         </div>
         <Link 
           href="/admin/add" 
-          className="bg-black text-white px-6 py-3 rounded-2xl font-black text-xs flex items-center gap-2 hover:bg-gray-800 transition shadow-lg active:scale-95"
+          className="bg-black text-white px-8 py-4 rounded-[22px] font-black text-xs flex items-center gap-3 hover:bg-zinc-800 transition-all shadow-[0_10px_30px_rgba(0,0,0,0.15)] active:scale-95 group"
         >
-          <Plus size={16} /> ADD PRODUCT
+          <Plus size={18} className="group-hover:rotate-90 transition-transform duration-300" /> 
+          ADD NEW PRODUCT
         </Link>
       </div>
 
-      <div className="bg-white border border-gray-100 rounded-[32px] overflow-hidden shadow-sm">
+      {/* Stats Summary (Optional/New UI) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10 text-center">
+        <div className="p-6 bg-gray-50 rounded-[30px] border border-gray-100">
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Stock</p>
+          <p className="text-2xl font-black mt-1">{products.length} Items</p>
+        </div>
+        {/* คุณสามารถเพิ่มช่องอื่นๆ เช่น ยอดรวมราคาได้ที่นี่ */}
+      </div>
+
+      {/* Table Container */}
+      <div className="bg-white border border-gray-100 rounded-[42px] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.03)]">
         <table className="w-full text-left border-collapse">
-          <thead className="bg-gray-50/50 text-[10px] font-black tracking-widest uppercase text-gray-400 border-b border-gray-50">
+          <thead className="bg-gray-50/80 text-[10px] font-black tracking-widest uppercase text-gray-500 border-b border-gray-50">
             <tr>
-              <th className="px-8 py-5">Product Details</th>
-              <th className="px-8 py-5">Price</th>
-              <th className="px-8 py-5 text-right">Settings</th>
+              <th className="px-10 py-6">Product Details</th>
+              <th className="px-10 py-6">Pricing</th>
+              <th className="px-10 py-6 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
             {products.map((product) => (
-              <tr key={product.id} className="hover:bg-gray-50/30 transition-colors group">
-                <td className="px-8 py-5">
-                  <div className="flex items-center gap-5">
-                    <div className="w-16 h-16 rounded-2xl bg-gray-100 overflow-hidden border border-gray-50">
+              <tr key={product.id} className="hover:bg-gray-50/40 transition-all group">
+                <td className="px-10 py-7">
+                  <div className="flex items-center gap-6">
+                    <div className="w-20 h-20 rounded-[28px] bg-gray-100 overflow-hidden border border-gray-100 shadow-sm relative">
                       <img 
                         src={Array.isArray(product.image_url) ? product.image_url[0] : product.image_url} 
-                        className="w-full h-full object-cover group-hover:scale-110 transition duration-500"
+                        className="w-full h-full object-cover group-hover:scale-110 transition duration-700"
                         alt=""
                       />
                     </div>
                     <div>
-                      <p className="font-black text-sm uppercase leading-tight">{product.name}</p>
-                      <p className="text-[10px] font-bold text-gray-400 mt-1">SIZE: {product.size}</p>
+                      <p className="font-black text-base uppercase leading-tight text-zinc-900">{product.name}</p>
+                      <div className="flex gap-2 mt-2">
+                         <span className="text-[9px] font-black bg-zinc-100 px-2 py-1 rounded-md text-zinc-500 uppercase tracking-tighter">SIZE: {product.size}</span>
+                         {product.category && <span className="text-[9px] font-black bg-zinc-100 px-2 py-1 rounded-md text-zinc-500 uppercase tracking-tighter">{product.category}</span>}
+                      </div>
                     </div>
                   </div>
                 </td>
-                <td className="px-8 py-5">
-                  <span className="font-black text-sm italic">฿{product.price?.toLocaleString()}</span>
+                <td className="px-10 py-7">
+                  <div className="flex flex-col">
+                    <span className="font-black text-lg italic text-zinc-900 leading-none">฿{product.price?.toLocaleString()}</span>
+                    <span className="text-[9px] font-bold text-gray-300 uppercase mt-1">Net Price</span>
+                  </div>
                 </td>
-                <td className="px-8 py-5 text-right">
-                  <div className="flex justify-end gap-2">
+                <td className="px-10 py-7 text-right">
+                  <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <button 
                       onClick={() => router.push(`/admin/add/edit/${product.id}`)}
-                      className="p-3 text-gray-300 hover:text-black hover:bg-white rounded-xl transition shadow-sm border border-transparent hover:border-gray-100"
+                      className="p-4 text-zinc-400 hover:text-black bg-white hover:bg-zinc-50 rounded-2xl transition shadow-sm border border-gray-100 active:scale-90"
+                      title="Edit Product"
                     >
                       <Edit3 size={18} />
                     </button>
                     <button 
                       onClick={() => handleDelete(product.id)}
-                      className="p-3 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition border border-transparent hover:border-red-100"
+                      className="p-4 text-zinc-400 hover:text-red-500 bg-white hover:bg-red-50 rounded-2xl transition border border-gray-100 active:scale-90"
+                      title="Delete Product"
                     >
                       <Trash2 size={18} />
                     </button>
@@ -111,13 +128,16 @@ export default function AdminDashboard() {
           </tbody>
         </table>
 
+        {/* Empty State */}
         {products.length === 0 && (
-          <div className="p-20 text-center">
-            <Package className="mx-auto text-gray-200 mb-4" size={48} />
-            <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">No products found in database</p>
+          <div className="p-32 text-center bg-gray-50/30">
+            <div className="inline-block p-8 bg-white rounded-[40px] shadow-sm mb-6 border border-gray-50">
+               <Package className="text-zinc-200" size={60} />
+            </div>
+            <p className="text-zinc-400 font-black uppercase tracking-[0.3em] text-[10px]">No products in your vault</p>
           </div>
         )}
       </div>
     </div>
   )
-}
+}   
