@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../../../lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
-import { Upload, X, Loader2, Plus } from 'lucide-react'
+import { Upload, X, Loader2, Plus, ChevronLeft } from 'lucide-react'
 
 export default function EditProductPage() {
   const { id } = useParams()
@@ -11,10 +11,15 @@ export default function EditProductPage() {
   const [name, setName] = useState('')
   const [price, setPrice] = useState('')
   const [size, setSize] = useState('')
+  const [category, setCategory] = useState('') 
   const [description, setDescription] = useState('')
-  const [imageUrls, setImageUrls] = useState<string[]>([]) // เปลี่ยนเป็น Array
+  const [imageUrls, setImageUrls] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
+
+  // 🌟 ปรับปรุง: ใช้ตัวพิมพ์เล็กทั้งหมดเพื่อให้ตรงกับระบบ Filter ในหน้า Shop
+  const categories = ['tshirt', 'sweater', 'hoodie']
+  const sizes = ['S', 'M', 'L', 'XL']
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -23,8 +28,9 @@ export default function EditProductPage() {
         setName(data.name)
         setPrice(data.price.toString())
         setSize(data.size || '')
+        // 🌟 ตรวจสอบให้แน่ใจว่าดึงค่ามาแล้วเป็นตัวพิมพ์เล็ก
+        setCategory(data.category?.toLowerCase() || '')
         setDescription(data.description || '')
-        // ตรวจสอบว่าเป็น Array หรือไม่ ถ้าไม่ใช่ให้แปลงเป็น Array
         const imgs = Array.isArray(data.image_url) ? data.image_url : [data.image_url].filter(Boolean)
         setImageUrls(imgs)
       }
@@ -33,7 +39,6 @@ export default function EditProductPage() {
     fetchProduct()
   }, [id])
 
-  // ฟังก์ชันอัปโหลดรูป (รองรับการเพิ่มเข้าไปใน Array)
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
@@ -61,7 +66,6 @@ export default function EditProductPage() {
     setUpdating(false)
   }
 
-  // ฟังก์ชันลบรูปเฉพาะใบที่เลือก
   const removeImage = (indexToRemove: number) => {
     setImageUrls(imageUrls.filter((_, index) => index !== indexToRemove))
   }
@@ -75,8 +79,9 @@ export default function EditProductPage() {
         name, 
         price: Number(price), 
         size,
+        category: category.toLowerCase(), // 🌟 บังคับบันทึกเป็นตัวพิมพ์เล็กเสมอ
         description,
-        image_url: imageUrls // ส่ง Array ของรูปทั้งหมดกลับไป
+        image_url: imageUrls 
       })
       .eq('id', id)
     
@@ -87,61 +92,122 @@ export default function EditProductPage() {
     setUpdating(false)
   }
 
-  if (loading) return <div className="p-20 text-center font-black animate-pulse">LOADING...</div>
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center font-black italic animate-pulse text-zinc-300 tracking-widest uppercase text-xs">
+      Vault Synchronizing...
+    </div>
+  )
 
   return (
-    <div className="max-w-3xl mx-auto mt-10 mb-20 p-10 bg-white border border-gray-100 rounded-[40px] shadow-2xl">
-      <h1 className="text-3xl font-black italic uppercase mb-8">Edit Product Gallery</h1>
+    <div className="max-w-4xl mx-auto mt-10 mb-20 p-6 md:p-12 bg-white border border-gray-100 rounded-[40px] shadow-2xl font-sans text-zinc-900">
+      <button 
+        onClick={() => router.back()}
+        className="flex items-center gap-2 text-zinc-400 mb-8 font-black text-[10px] tracking-widest hover:text-black transition-colors uppercase italic border-none bg-transparent cursor-pointer"
+      >
+        <ChevronLeft size={16} /> Back
+      </button>
+
+      <div className="mb-10">
+        <h1 className="text-4xl font-black italic uppercase tracking-tighter">Edit Product Gallery</h1>
+        <p className="text-[10px] font-black text-zinc-300 mt-2 uppercase tracking-[0.4em]">Vault Management System</p>
+      </div>
       
-      <form onSubmit={handleUpdate} className="space-y-8">
+      <form onSubmit={handleUpdate} className="space-y-12">
         
-        {/* ส่วนจัดการหลายรูปภาพ */}
+        {/* Gallery Section */}
         <div className="space-y-4">
-          <label className="text-[10px] font-black ml-4 text-gray-400 uppercase tracking-widest">Product Gallery ({imageUrls.length})</label>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 border-2 border-dashed border-gray-100 rounded-[32px]">
-            
+          <label className="text-[10px] font-black ml-4 text-gray-400 uppercase tracking-widest italic">Product Gallery ({imageUrls.length})</label>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-8 bg-zinc-50/50 border-2 border-dashed border-zinc-100 rounded-[32px]">
             {imageUrls.map((url, index) => (
-              <div key={index} className="relative aspect-square group">
-                <img src={url} className="w-full h-full object-cover rounded-2xl border border-gray-100 shadow-sm" alt="Preview" />
+              <div key={index} className="relative aspect-[3/4] group animate-in fade-in zoom-in duration-300">
+                <img src={url} className="w-full h-full object-cover rounded-2xl border border-gray-100 shadow-sm transition-transform group-hover:scale-[1.02]" alt="Preview" />
                 <button 
                   type="button"
                   onClick={() => removeImage(index)} 
-                  className="absolute -top-2 -right-2 bg-red-500 text-white p-1.5 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute -top-2 -right-2 bg-black text-white p-2 rounded-full shadow-lg hover:bg-red-500 transition-colors border-none cursor-pointer"
                 >
-                  <X size={14}/>
+                  <X size={12}/>
                 </button>
-                {index === 0 && <span className="absolute bottom-2 left-2 bg-black text-[8px] text-white px-2 py-1 rounded-md font-black">THUMBNAIL</span>}
+                {index === 0 && (
+                  <span className="absolute bottom-2 left-2 bg-black text-[7px] text-white px-3 py-1 rounded-full font-black tracking-widest uppercase">THUMBNAIL</span>
+                )}
               </div>
             ))}
 
-            <label className="flex flex-col items-center justify-center aspect-square cursor-pointer bg-gray-50 hover:bg-gray-100 rounded-2xl border-2 border-dashed border-gray-200 transition-all group">
-              <Plus className="text-gray-300 group-hover:text-black transition-colors" size={30} />
-              <span className="text-[8px] font-black text-gray-400 mt-2">ADD IMAGE</span>
+            <label className="flex flex-col items-center justify-center aspect-[3/4] cursor-pointer bg-white hover:bg-zinc-100 rounded-2xl border-2 border-dashed border-zinc-200 transition-all group shadow-sm">
+              <Plus className="text-zinc-300 group-hover:text-black transition-colors" size={32} />
+              <span className="text-[8px] font-black text-zinc-400 mt-3 tracking-widest uppercase">Add Image</span>
               <input type="file" className="hidden" onChange={handleImageUpload} accept="image/*" multiple />
             </label>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="md:col-span-2">
-            <label className="text-[10px] font-black ml-4 mb-2 block text-gray-400 uppercase">Product Name</label>
-            <input className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-bold focus:ring-2 focus:ring-black" value={name} onChange={(e) => setName(e.target.value)} required />
-          </div>
-          
-          <div>
-            <label className="text-[10px] font-black ml-4 mb-2 block text-gray-400 uppercase">Price (฿)</label>
-            <input className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-bold" type="number" value={price} onChange={(e) => setPrice(e.target.value)} required />
-          </div>
-
-          <div>
-            <label className="text-[10px] font-black ml-4 mb-2 block text-gray-400 uppercase">Size</label>
-            <input className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-bold" value={size} onChange={(e) => setSize(e.target.value)} />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+          <div className="space-y-8 md:col-span-2">
+            <div>
+              <label className="text-[10px] font-black ml-4 mb-3 block text-gray-400 uppercase italic tracking-widest">Product Name</label>
+              <input 
+                className="w-full p-5 bg-zinc-50 rounded-2xl outline-none font-black text-lg border border-transparent focus:ring-2 focus:ring-black transition-all" 
+                value={name} 
+                onChange={(e) => setName(e.target.value)} 
+                required 
+              />
+            </div>
           </div>
 
+          <div>
+            <label className="text-[10px] font-black ml-4 mb-3 block text-gray-400 uppercase italic tracking-widest">Price (฿)</label>
+            <input 
+              className="w-full p-5 bg-zinc-50 rounded-2xl outline-none font-black text-lg border border-transparent focus:ring-2 focus:ring-black transition-all" 
+              type="number" 
+              value={price} 
+              onChange={(e) => setPrice(e.target.value)} 
+              required 
+            />
+          </div>
+
+          {/* 🌟 Category Selection (ปรับปรุงการแสดงผล) */}
+          <div>
+            <label className="text-[10px] font-black ml-4 mb-3 block text-gray-400 uppercase italic tracking-widest">Category</label>
+            <div className="flex flex-wrap gap-2 p-2 bg-zinc-50 rounded-2xl">
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setCategory(cat)}
+                  className={`px-6 py-2 rounded-xl text-[9px] font-black transition-all border cursor-pointer ${
+                    category === cat ? 'bg-black text-white border-black shadow-lg' : 'bg-white text-zinc-400 border-zinc-100 hover:border-zinc-300'
+                  }`}
+                >
+                  {cat.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Size Selection */}
           <div className="md:col-span-2">
-            <label className="text-[10px] font-black ml-4 mb-2 block text-gray-400 uppercase">Full Description</label>
+            <label className="text-[10px] font-black ml-4 mb-3 block text-gray-400 uppercase italic tracking-widest">Size Selection</label>
+            <div className="flex flex-wrap gap-3 p-4 bg-zinc-50 rounded-2xl">
+              {sizes.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setSize(s)}
+                  className={`w-20 py-3 rounded-xl text-xs font-black transition-all border cursor-pointer ${
+                    size === s ? 'bg-black text-white border-black shadow-lg scale-95' : 'bg-white text-zinc-400 border-zinc-100 hover:border-zinc-300'
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="text-[10px] font-black ml-4 mb-3 block text-gray-400 uppercase italic tracking-widest">Full Description</label>
             <textarea 
-              className="w-full p-5 bg-gray-50 rounded-[24px] outline-none font-bold min-h-[150px] leading-relaxed" 
+              className="w-full p-6 bg-zinc-50 rounded-[32px] outline-none font-bold min-h-[180px] border border-transparent focus:ring-2 focus:ring-black transition-all leading-relaxed" 
               value={description} 
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Tell more about this product..."
@@ -151,9 +217,9 @@ export default function EditProductPage() {
 
         <button 
           disabled={updating}
-          className="w-full bg-black text-white py-5 rounded-[24px] font-black shadow-xl hover:bg-gray-800 transition active:scale-95 disabled:opacity-50 flex justify-center items-center gap-2 text-sm tracking-widest"
+          className="w-full bg-black text-white py-6 rounded-full font-black shadow-2xl hover:bg-zinc-800 transition active:scale-95 disabled:opacity-50 flex justify-center items-center gap-3 text-[11px] tracking-[0.3em] uppercase italic border-none cursor-pointer"
         >
-          {updating ? <Loader2 className="animate-spin" size={20} /> : 'SAVE ALL CHANGES'}
+          {updating ? <Loader2 className="animate-spin" size={20} /> : 'Save All Changes'}
         </button>
       </form>
     </div>
