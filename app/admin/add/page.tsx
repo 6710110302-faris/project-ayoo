@@ -12,9 +12,9 @@ export default function AddProduct() {
   const [formData, setFormData] = useState({
     name: '',
     price: '',
-    size: '',
+    size: 'M', // 🌟 กำหนดค่าเริ่มต้นเป็น M
     description: '',
-    category: ''
+    category: 'tshirt'
   })
 
   // ฟังก์ชันจัดการตอนเลือกไฟล์และทำ Preview
@@ -28,7 +28,6 @@ export default function AddProduct() {
     }
   }
 
-  // ฟังก์ชันลบรูปที่เลือกออกก่อนอัปโหลด
   const removeFile = (index: number) => {
     setFiles(prev => prev.filter((_, i) => i !== index))
     setPreviews(prev => prev.filter((_, i) => i !== index))
@@ -41,11 +40,10 @@ export default function AddProduct() {
 
     try {
       const imageUrls = []
-
       for (const file of files) {
         const fileExt = file.name.split('.').pop()
         const fileName = `${Math.random()}.${fileExt}`
-        const filePath = `products/${fileName}` // ใส่ไว้ใน folder products เพื่อความเป็นระเบียบ
+        const filePath = `products/${fileName}`
 
         const { error: uploadError } = await supabase.storage
           .from('product-images')
@@ -72,7 +70,7 @@ export default function AddProduct() {
       if (insertError) throw insertError
 
       alert('ลงขายสินค้าสำเร็จ!')
-      router.push('/admin/add/dashboard') // กลับไปหน้า Dashboard ที่เราคุยกันไว้
+      router.push('/admin/add/dashboard')
       router.refresh()
     } catch (error: any) {
       alert('เกิดข้อผิดพลาด: ' + error.message)
@@ -136,20 +134,34 @@ export default function AddProduct() {
             />
           </div>
 
+          {/* 🌟 แก้ไขส่วน Size ให้เป็น Select */}
           <div>
             <label className="text-[11px] font-black ml-4 mb-2 block text-gray-400 uppercase">Size / Fit</label>
-            <input  
-              className="w-full p-5 bg-gray-50 rounded-[22px] outline-none font-bold border border-transparent focus:border-zinc-200 focus:bg-white transition-all text-sm"
+            <select
+              value={formData.size}
+              className="w-full p-5 bg-gray-50 rounded-[22px] outline-none font-bold border border-transparent focus:border-zinc-200 focus:bg-white transition-all text-sm appearance-none cursor-pointer"
               onChange={(e) => setFormData({...formData, size: e.target.value})}
-            />
+              required
+            >
+              <option value="S">S</option>
+              <option value="M">M</option>
+              <option value="L">L</option>
+              <option value="XL">XL</option>
+            </select>
           </div>
 
           <div className="md:col-span-2">
             <label className="text-[11px] font-black ml-4 mb-2 block text-gray-400 uppercase">Category</label>
-            <input 
-              className="w-full p-5 bg-gray-50 rounded-[22px] outline-none font-bold border border-transparent focus:border-zinc-200 focus:bg-white transition-all text-sm"
+            <select 
+              value={formData.category}
+              className="w-full p-5 bg-gray-50 rounded-[22px] outline-none font-bold border border-transparent focus:border-zinc-200 focus:bg-white transition-all text-sm appearance-none cursor-pointer"
               onChange={(e) => setFormData({...formData, category: e.target.value})}
-            />
+              required
+            >
+              <option value="tshirt">T-SHIRT</option>
+              <option value="hoodie">HOODIE</option>
+              <option value="sweater">SWEATER</option>
+            </select>
           </div>
 
           <div className="md:col-span-2">
