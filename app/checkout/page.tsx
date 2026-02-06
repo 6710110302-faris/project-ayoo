@@ -85,7 +85,7 @@ export default function CheckoutPage() {
           <div className="bg-zinc-50 p-10 rounded-[48px] text-center border border-zinc-100 shadow-inner">
             <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-300 mb-6 italic">Payment Terminal</p>
             <div className="bg-white p-6 rounded-[32px] shadow-sm inline-block mb-6 border border-zinc-100">
-              <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=0987654321`} alt="QR" className="w-40 h-40 grayscale" />
+              <img src={"./qr.jpg"} alt="QR" className="w-40 h-40 grayscale" />
             </div>
             <h2 className="text-5xl font-black italic tracking-tighter text-zinc-900">฿{totalPrice.toLocaleString()}</h2>
           </div>

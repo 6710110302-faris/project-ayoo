@@ -140,7 +140,7 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
                   : 'bg-black text-white hover:bg-zinc-800 active:scale-95'
                 }`}
               >
-                {product.is_sold ? 'SOLD OUT' : isAlreadyInCart ? <><CheckCircle2 size={18} /> ALREADY IN VAULT</> : isAdding ? 'ADDING...' : 'ADD TO VAULT'}
+                {product.is_sold ? 'SOLD OUT' : isAlreadyInCart ? <><CheckCircle2 size={18} /> ALREADY IN CART</> : isAdding ? 'ADDING...' : 'ADD TO CART'}
               </button>
             </div>
           </div>

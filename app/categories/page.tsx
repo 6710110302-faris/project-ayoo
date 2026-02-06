@@ -6,13 +6,13 @@ const categories = [
     name: 'All Collection',
     slug: '', 
     description: 'VIEW ALL ITEMS',
-    image: '/tshirt.png' 
+    image: '/al.png' 
   },
   {
     name: 'T-Shirts',
     slug: 'tshirt',
     description: 'ESSENTIAL TEES',
-    image: '/tshirt.png'
+    image: '/tshirt1.png'
   },
   {
     name: 'Hoodies',
